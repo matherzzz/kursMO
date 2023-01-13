@@ -1,8 +1,0 @@
-#This is auto generated script
-set terminal png size 640,480 enhanced font 'Verdana,14'
-set output 'example1.png'
-set title ''
-set xlabel ''
-set ylabel ''
-set zlabel ''
-splot 'example1' w pm3d
