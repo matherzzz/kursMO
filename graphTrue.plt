@@ -171,6 +171,6 @@ set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap 
 GNUTERM = "qt"
 VoxelDistance = 0.0
 ## Last datafile plotted: "C:/Users/Матвей/Documents/C++ Project/Visual Studio/lab2CHM/lab2CHM/graph_simpson.txt"
-splot 'example' w pm3d
+splot 'example1' w pm3d
 pause -1
 #    EOF

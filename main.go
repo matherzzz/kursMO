@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/borgishmorg/go3dplot"
 	"math"
 )
@@ -26,21 +25,21 @@ func derivative(order float64, f []float64) float64 {
 }
 
 func phi(x float64) float64 {
-	return math.Exp(x) * (1 - x) * x
+	return (1 - x) * x
 }
 
 func eta(x float64) float64 {
-	return x * 0
+	return (1 - x) * x
 }
 
 func fTruth() [stepT][stepX]float64 {
 	f := [stepT][stepX]float64{}
 	var x, t float64
-	for i := 0; i < stepT; i++ {
-		for j := 0; j < stepX; j++ {
+	for i := 2; i < stepT-1; i++ {
+		for j := 1; j < stepX; j++ {
 			t = float64(i) * tau
 			x = float64(j) * h
-			f[i][j] = 0 * x * t // p0 = 1000 * t^2 * (1 - t)
+			f[i][j] = math.Exp(t) * ((1-x)*x - (1-4*x)/math.Gamma(0.5)/math.Sqrt(x)) // p0 = 1000 * t^2 * (1 - t)
 		}
 	}
 	return f
@@ -114,7 +113,7 @@ func implicitStraight(f [stepT][stepX]float64) {
 			A[i-1][i-1] += 1 / (tau * tau)
 			columnFreeMembers[i-1] += (2*U[n-1][i]-U[n-2][i])/(tau*tau) + f[n][i]
 			for k := 1; k <= i+1; k++ {
-				buff = coefficient * (math.Pow(h*float64(i+1-k), 1-alpha)*h*(alpha-1+float64(k-2-i)) + math.Pow(h*float64(i+2-k), 2-alpha)) / (h * (alpha*alpha - 3*alpha + 2))
+				buff = coefficient * (math.Pow(h*float64(i+1-k), 1-alpha)*h*(alpha-3+float64(k-i)) + math.Pow(h*float64(i+2-k), 2-alpha)) / (h * (alpha*alpha - 3*alpha + 2))
 				if i < stepX-2 || k != i+1 {
 					A[i-1][k-1] -= buff
 				}
@@ -123,7 +122,7 @@ func implicitStraight(f [stepT][stepX]float64) {
 				}
 			}
 			for k := 1; k <= i; k++ {
-				buff = 2 * coefficient * (math.Pow(h*float64(i-k), 1-alpha)*h*(alpha-1+float64(k-1-i)) + math.Pow(h*float64(i+1-k), 2-alpha)) / (h * (alpha*alpha - 3*alpha + 2))
+				buff = 2 * coefficient * (math.Pow(h*float64(i-k), 1-alpha)*h*(alpha-2+float64(k-i)) + math.Pow(h*float64(i+1-k), 2-alpha)) / (h * (alpha*alpha - 3*alpha + 2))
 				A[i-1][k-1] += buff
 				if k-1 > 0 {
 					A[i-1][k-2] -= buff - 2*coefficient*(math.Pow(h*float64(i-k), 1-alpha)-math.Pow(h*float64(i+1-k), 1-alpha))/(alpha-1)
@@ -160,10 +159,25 @@ func implicitStraight(f [stepT][stepX]float64) {
 
 func main() {
 	f := fTruth()
-	fmt.Print(math.Gamma(1 - alpha))
+	x := make([]float64, 0)
+	t := make([]float64, 0)
+	U := make([][]float64, 0)
 	implicitStraight(f)
-	//mtr := [stepX - 2][stepX - 2]float64{{2, 1, 0}, {1, 2, 4}, {0, 5, 2}}
-	//f := [stepX - 2]float64{1, 1, 1}
-	//answer := Gauss(mtr, f)
-	//fmt.Print(answer)
+	for i := 0; i < stepX; i++ {
+		x = append(x, float64(i)*h)
+	}
+	for i := 0; i < stepT; i++ {
+		t = append(t, float64(i)*tau)
+	}
+	for i := 0; i < stepT; i++ {
+		U = append(U, make([]float64, 0))
+		for j := 0; j < stepX; j++ {
+			U[i] = append(U[i], math.Exp(float64(i)*tau)*((1-float64(j)*h)*float64(j)*h))
+		}
+	}
+	drawer := go3dplot.GetGnuplotDrawer()
+	err := drawer.Draw(x, t, U, "example1")
+	if err != nil {
+		return
+	}
 }
