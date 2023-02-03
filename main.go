@@ -13,7 +13,7 @@ const (
 	l     = 1
 	tau   = T / float64(stepT-1)
 	h     = l / float64(stepX-1)
-	alpha = 0.99
+	alpha = 0.5
 )
 
 func phi(x float64) float64 {
@@ -40,7 +40,7 @@ func gauss(matrix *[stepX - 2][stepX - 2]float64, columnFreeMembers *[stepX - 2]
 	var answer, buffer1 [stepX - 2]float64
 	var buffer2 float64
 	for k := 0; k < len(matrix); k++ {
-		max := -1e5
+		max := -1e6
 		number := -1
 		// ищем ведущий элемент
 		for i := k; i < len(matrix); i++ {
@@ -74,7 +74,7 @@ func gauss(matrix *[stepX - 2][stepX - 2]float64, columnFreeMembers *[stepX - 2]
 	for i := len(matrix) - 1; i >= 0; i-- {
 		buffer2 = columnFreeMembers[i]
 		for j := len(matrix) - 1; j > i; j-- {
-			buffer2 -= matrix[i][j] * answer[i+1]
+			buffer2 -= matrix[i][j] * answer[j]
 		}
 		answer[i] = buffer2
 	}
@@ -135,7 +135,7 @@ func implicitStraight(f *[stepT][stepX]float64) [][]float64 {
 
 func main() {
 	var f [stepT][stepX]float64
-	max := 0.0
+	var max float64
 	maxI, maxJ := 0, 0
 	impact(&f)
 	x := make([]float64, 0)
