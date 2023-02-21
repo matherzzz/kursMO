@@ -88,47 +88,36 @@ func implicitStraight(f *[stepT][stepX]float64) [][]float64 {
 		U[0] = append(U[0], phi(h*float64(j)))
 		U[1] = append(U[1], U[0][j]+tau*eta(h*float64(j)))
 	}
-	coefficient := 1 / (math.Gamma(1-alpha) * math.Pow(h, alpha+1) * (alpha*alpha - 3*alpha + 2))
+	coefficient := 1 / (2 * math.Gamma(1-alpha) * math.Pow(h, 1+alpha) * (alpha*alpha - 3*alpha + 2))
 	for n := 2; n < stepT; n++ {
 		U = append(U, make([]float64, 0))
-		U[n] = append(U[n], 0)
+		U[n] = append(U[n], 0, 0)
 		//создание и заполнение матрицы
-		var matrix [stepX - 2][stepX - 2]float64
-		var columnFreeMembers [stepX - 2]float64
 		for i := 1; i < stepX-1; i++ {
-			matrix[i-1][i-1] = 1 / (tau * tau)
-			columnFreeMembers[i-1] = (2*U[n-1][i]-U[n-2][i])/(tau*tau) + f[n][i]
+			U[n] = append(U[n], 0)
+			U[n][i+1] = ((U[n][i]-2*U[n-1][i]+U[n-2][i])/(tau*tau) - f[n][i]) / coefficient
 			for k := 1; k <= i+1; k++ {
-				buffer = coefficient * (math.Pow(float64(i+1-k), 1-alpha)*(alpha-3+float64(k-i)) + math.Pow(float64(i+2-k), 2-alpha))
-				if i != stepX-2 || k != i+1 {
-					matrix[i-1][k-1] -= buffer
-				}
-				if k-1 > 0 {
-					matrix[i-1][k-2] += buffer - coefficient*(alpha-2)*(math.Pow(float64(i+1-k), 1-alpha)-math.Pow(float64(i+2-k), 1-alpha))
-				}
+				buffer = math.Pow(float64(i+1-k), 1-alpha)*(alpha-3+float64(k-i)) + math.Pow(float64(i+2-k), 2-alpha)
+				U[n][i+1] -= buffer * U[n-2][k]
+				U[n][i+1] += (buffer - (alpha-2)*(math.Pow(float64(i+1-k), 1-alpha)-math.Pow(float64(i+2-k), 1-alpha))) * U[n-2][k-1]
 			}
 			for k := 1; k <= i; k++ {
-				buffer = 2 * coefficient * (math.Pow(float64(i-k), 1-alpha)*(alpha-2+float64(k-i)) + math.Pow(float64(i+1-k), 2-alpha))
-				matrix[i-1][k-1] += buffer
-				if k-1 > 0 {
-					matrix[i-1][k-2] -= buffer - 2*coefficient*(alpha-2)*(math.Pow(float64(i-k), 1-alpha)-math.Pow(float64(i+1-k), 1-alpha))
-				}
+				buffer = math.Pow(float64(i+1-k), 1-alpha)*(alpha-3+float64(k-i)) + math.Pow(float64(i+2-k), 2-alpha)
+				U[n][i+1] -= buffer * U[n][k]
+				U[n][i+1] += (buffer - (alpha-2)*(math.Pow(float64(i+1-k), 1-alpha)-math.Pow(float64(i+2-k), 1-alpha))) * U[n][k-1]
+			}
+			for k := 1; k <= i; k++ {
+				buffer = 2 * (math.Pow(float64(i-k), 1-alpha)*(alpha-2+float64(k-i)) + math.Pow(float64(i+1-k), 2-alpha))
+				U[n][i+1] += buffer * (U[n][k] + U[n-2][k])
+				U[n][i+1] -= (buffer - 2*(alpha-2)*(math.Pow(float64(i-k), 1-alpha)-math.Pow(float64(i+1-k), 1-alpha))) * (U[n][k-1] + U[n-2][k-1])
 			}
 			for k := 1; k <= i-1; k++ {
-				buffer = coefficient * (math.Pow(float64(i-1-k), 1-alpha)*(alpha-1+float64(k-i)) + math.Pow(float64(i-k), 2-alpha))
-				matrix[i-1][k-1] -= buffer
-				if k-1 > 0 {
-					matrix[i-1][k-2] += buffer - coefficient*(alpha-2)*(math.Pow(float64(i-1-k), 1-alpha)-math.Pow(float64(i-k), 1-alpha))
-				}
+				buffer = math.Pow(float64(i-1-k), 1-alpha)*(alpha-1+float64(k-i)) + math.Pow(float64(i-k), 2-alpha)
+				U[n][i+1] -= buffer * (U[n][k] + U[n-2][k])
+				U[n][i+1] += (buffer - (alpha-2)*(math.Pow(float64(i-1-k), 1-alpha)-math.Pow(float64(i-k), 1-alpha))) * (U[n][k-1] + U[n-2][k-1])
 			}
+			U[n][i+1] -= (1 - alpha) * U[n][i]
 		}
-		//решаем систему
-		answer := gauss(&matrix, &columnFreeMembers)
-		//заполняем слой
-		for j := 0; j < len(answer); j++ {
-			U[n] = append(U[n], answer[j])
-		}
-		U[n] = append(U[n], 0)
 	}
 	return U
 }
@@ -169,7 +158,7 @@ func main() {
 	fmt.Print(maxI, maxJ)
 	// отрисовка графика функции U(x,t)
 	drawer := go3dplot.GetGnuplotDrawer()
-	err := drawer.Draw(x, t, UErr, "example2")
+	err := drawer.Draw(x, t, U, "example")
 	if err != nil {
 		return
 	}
